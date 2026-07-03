@@ -27,6 +27,11 @@ class AppConfig:
     wechat_articles_per_keyword: int
     wechat_max_articles: int
     wechat_full_text_limit: int
+    ocr_enabled: bool
+    ocr_lang: str
+    ocr_platforms: list[str]
+    ocr_image_dir: Path
+    ocr_max_images_per_record: int
 
 
 def load_config(path: Path) -> AppConfig:
@@ -37,6 +42,7 @@ def load_config(path: Path) -> AppConfig:
     third_party = data.get("third_party", {})
     crawl = data.get("crawl", {})
     wechat = data.get("wechat", {})
+    ocr = data.get("ocr", {})
 
     def resolve(value: str) -> Path:
         return (root / value).resolve()
@@ -60,6 +66,11 @@ def load_config(path: Path) -> AppConfig:
         wechat_articles_per_keyword=int(wechat.get("articles_per_keyword", 10)),
         wechat_max_articles=int(wechat.get("max_articles", 120)),
         wechat_full_text_limit=int(wechat.get("full_text_limit", 40)),
+        ocr_enabled=bool(ocr.get("enabled", False)),
+        ocr_lang=str(ocr.get("lang", "ch")),
+        ocr_platforms=["weibo" if item == "wb" else str(item) for item in ocr.get("platforms", ["xhs", "weibo"])],
+        ocr_image_dir=resolve(ocr.get("image_dir", "raw/images")),
+        ocr_max_images_per_record=int(ocr.get("max_images_per_record", 6)),
     )
 
 
@@ -68,6 +79,7 @@ def ensure_dirs(cfg: AppConfig) -> None:
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
     for platform in ("xhs", "weibo", "wechat"):
         (cfg.raw_dir / platform / "jsonl").mkdir(parents=True, exist_ok=True)
+    cfg.ocr_image_dir.mkdir(parents=True, exist_ok=True)
 
 
 def as_bool_text(value: bool) -> str:

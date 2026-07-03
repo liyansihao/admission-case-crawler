@@ -18,6 +18,15 @@ crawl:
   max_notes_per_run: 30
   max_comments_per_note: 5
 
+ocr:
+  enabled: false
+  lang: ch
+  platforms:
+    - xhs
+    - weibo
+  image_dir: raw/images
+  max_images_per_record: 6
+
 keywords:
   - 港硕录取
   - 香港留学录取

@@ -1,6 +1,6 @@
 param(
   [Parameter(Position = 0)]
-  [ValidateSet("init", "patch", "crawl-xhs", "crawl-weibo", "start-wechat", "crawl-wechat", "build", "all")]
+  [ValidateSet("init", "patch", "crawl-xhs", "crawl-weibo", "start-wechat", "crawl-wechat", "ocr-check", "build", "all")]
   [string]$Command = "build"
 )
 
@@ -23,6 +23,7 @@ switch ($Command) {
   "crawl-weibo" { Run-Cli @("crawl", "--platform", "weibo") }
   "start-wechat" { Run-Cli @("start-wechat") }
   "crawl-wechat" { Run-Cli @("crawl", "--platform", "wechat") }
+  "ocr-check" { Run-Cli @("ocr-check") }
   "build" { Run-Cli @("build") }
   "all" {
     Run-Cli @("patch")

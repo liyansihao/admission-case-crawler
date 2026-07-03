@@ -10,6 +10,12 @@ dependencies = [
   "requests>=2.32.0",
 ]
 
+[project.optional-dependencies]
+ocr = [
+  "paddleocr>=2.7.0",
+  "paddlepaddle>=2.6.0",
+]
+
 [project.scripts]
 admission-case-crawler = "admission_case_crawler.cli:main"
 

@@ -12,6 +12,7 @@ from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 
 from .config import AppConfig
+from .ocr import enrich_raw_with_ocr
 
 
 DETAIL_HEADERS = [
@@ -121,6 +122,7 @@ def build_outputs(cfg: AppConfig) -> list[dict[str, Any]]:
     records = []
     for platform, raw in load_content_records(cfg.raw_dir):
         note_id = text(raw.get("note_id") or raw.get("id") or "")
+        raw = enrich_raw_with_ocr(cfg, platform, note_id, raw)
         records.append(normalize_record(platform, raw, comments.get(f"{platform}:{note_id}", [])))
     records = dedupe(records)
     mark_incremental(records, cfg.state_file)
@@ -175,8 +177,9 @@ def normalize_record(platform: str, raw: dict[str, Any], comments: list[dict[str
     title = text(raw.get("title") or "")
     body = text(raw.get("desc") or raw.get("content") or raw.get("raw_text") or "")
     raw_text = combine(title, body)
+    ocr_text = text(raw.get("ocr_text") or "")
     comments_text = "\n".join(text(item.get("content")) for item in comments if item.get("content"))
-    full_text = "\n".join(part for part in [raw_text, comments_text] if part)
+    full_text = "\n".join(part for part in [raw_text, comments_text, ocr_text] if part)
     extracted = extract_fields(full_text)
     source_id = f"{platform}:{note_id}" if note_id else f"{platform}:{stable_hash(raw_text)}"
     content_type = classify(full_text)
@@ -192,6 +195,7 @@ def normalize_record(platform: str, raw: dict[str, Any], comments: list[dict[str
         "content_type": content_type,
         "raw_text": raw_text,
         "comments_text": comments_text,
+        "ocr_text": ocr_text,
         "undergraduate_school": extracted["undergraduate_school"],
         "undergraduate_major": extracted["undergraduate_major"],
         "gpa": extracted["gpa"],
@@ -204,7 +208,7 @@ def normalize_record(platform: str, raw: dict[str, Any], comments: list[dict[str
         "admission_result": extracted["admission_result"],
         "admission_year": extracted["admission_year"],
         "is_repost": bool(raw.get("retweeted_status") or "//@" in full_text or "转发" in full_text),
-        "from_image": False,
+        "from_image": bool(ocr_text),
         "confidence": confidence(extracted, content_type),
         "needs_review": needs_review,
         "is_new": True,
@@ -221,6 +225,7 @@ def normalize_record(platform: str, raw: dict[str, Any], comments: list[dict[str
         "application_timeline": first_match(full_text, [r"(?:时间线|申请时间线)[:： ]{0,3}([^。；;\n]{2,100})"]),
         "interview_vi": first_match(full_text, [r"(?:面试|VI)[:： ]{0,3}([^。；;\n]{2,100})"]),
         "image_urls": parse_url_list(raw.get("image_list") or raw.get("pictures") or raw.get("cover") or ""),
+        "ocr_image_paths": parse_url_list(raw.get("ocr_image_paths") or ""),
     }
 
 
@@ -445,7 +450,9 @@ def candidate_row(record: dict[str, Any]) -> list[Any]:
 def image_index_rows(records: list[dict[str, Any]]) -> list[list[Any]]:
     rows: list[list[Any]] = []
     for record in records:
+        local_paths = record.get("ocr_image_paths") or []
         for index, image_url in enumerate(record.get("image_urls") or [], start=1):
+            local_path = local_paths[index - 1] if index - 1 < len(local_paths) else image_url
             rows.append(
                 [
                     record.get("source_platform", ""),
@@ -456,10 +463,10 @@ def image_index_rows(records: list[dict[str, Any]]) -> list[list[Any]]:
                     record.get("source_account", ""),
                     record.get("publish_time", ""),
                     f"image_{index}",
-                    image_url,
+                    local_path,
                     "原始图片/封面",
-                    "已记录图片链接",
-                    "如字段未完整拆分，可按图片链接复核原图",
+                    "已 OCR" if record.get("ocr_text") else "已记录图片链接",
+                    trim(record.get("ocr_text", ""), 160) if record.get("ocr_text") else "如字段未完整拆分，可按图片链接复核原图",
                 ]
             )
     return rows
@@ -493,6 +500,8 @@ def render_markdown(record: dict[str, Any]) -> str:
         "",
         str(record.get("raw_text", "")),
     ]
+    if record.get("ocr_text"):
+        lines.extend(["", "## OCR Text", "", str(record.get("ocr_text", ""))])
     return "\n".join(lines).strip() + "\n"
 
 
@@ -570,6 +579,10 @@ def format_admission_year(value: Any) -> str:
 def source_type(record: dict[str, Any]) -> str:
     if record.get("platform") == "wechat":
         return "公众号文章"
+    if record.get("ocr_text") and record.get("comments_text"):
+        return "正文 + 评论 + 图片 OCR"
+    if record.get("ocr_text"):
+        return "正文 + 图片 OCR"
     if record.get("comments_text"):
         return "正文 + 评论"
     return "正文"
@@ -592,6 +605,8 @@ def other_supplement(record: dict[str, Any]) -> str:
         parts.append(f"申请地区：{record['application_region']}")
     if record.get("comments_text"):
         parts.append("含评论信息")
+    if record.get("ocr_text"):
+        parts.append("图片 OCR：" + trim(record.get("ocr_text", ""), 180))
     raw = trim(record.get("raw_text", ""), 120)
     if raw:
         parts.append(raw)

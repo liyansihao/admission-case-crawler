@@ -9,6 +9,7 @@ from .config import ensure_dirs, load_config
 from .default_config import DEFAULT_CONFIG
 from .exporter import build_outputs
 from .media import patch_media_crawler, run_media_crawler
+from .ocr import PaddleOcrEngine
 from .wechat import crawl_wechat
 
 
@@ -25,6 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("build")
     subparsers.add_parser("patch")
     subparsers.add_parser("start-wechat")
+    subparsers.add_parser("ocr-check")
 
     args = parser.parse_args(argv)
     config_path = Path(args.config).resolve()
@@ -55,6 +57,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"excel: {cfg.output_dir / 'excel' / '微博小红书公众号录取案例汇总_无False.xlsx'}")
     elif args.command == "start-wechat":
         start_wechat(cfg.wechat_exporter_dir)
+    elif args.command == "ocr-check":
+        PaddleOcrEngine(lang=cfg.ocr_lang)
+        print("OCR engine: ok")
     return 0
 
 

@@ -22,6 +22,25 @@
 .\setup.ps1
 ```
 
+如果需要识别小红书/微博图片上的文字，使用：
+
+```powershell
+.\setup.ps1 -InstallOCR
+```
+
+然后在 `config.yaml` 打开：
+
+```yaml
+ocr:
+  enabled: true
+```
+
+验证 OCR：
+
+```powershell
+.\run.ps1 ocr-check
+```
+
 安装脚本会自动：
 
 - 克隆两个开源项目到 `third_party/`
@@ -30,6 +49,7 @@
 - 安装公众号导出器依赖
 - 生成 `config.yaml`
 - 修复 MediaCrawler 本地 CDP 代理问题
+- 可选安装 PaddleOCR，用于识别小红书/微博图片文字
 
 安装为 Codex 技能：
 
@@ -69,6 +89,12 @@
 ```text
 output/excel/微博小红书公众号录取案例汇总_无False.xlsx
 ```
+
+开启 OCR 后，图片文字会参与字段抽取，并写入：
+
+- `逐条案例` 工作表的“其他补充”
+- `图片页索引` 工作表的“处理状态 / 备注”
+- 对应 Markdown 文件的 `OCR Text` 段落
 
 ## 数据字段
 

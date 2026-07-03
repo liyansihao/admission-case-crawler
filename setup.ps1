@@ -1,3 +1,7 @@
+param(
+  [switch]$InstallOCR
+)
+
 $ErrorActionPreference = "Stop"
 
 $Root = $PSScriptRoot
@@ -49,6 +53,14 @@ python -m venv (Join-Path $Root ".venv")
 & $VenvPython -m pip install --upgrade pip
 & $VenvPython -m pip install -r (Join-Path $Root "requirements.txt")
 
+if ($InstallOCR) {
+  $version = & $VenvPython -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"
+  if ([version]$version -ge [version]"3.13") {
+    throw "PaddleOCR currently requires Python 3.11 or 3.12 in this setup. Please install Python 3.11/3.12 and rerun setup.ps1 -InstallOCR."
+  }
+  & $VenvPython -m pip install ".[ocr]"
+}
+
 if (!(Get-Command uv -ErrorAction SilentlyContinue)) {
   & $VenvPython -m pip install uv
   $env:Path = (Join-Path $env:USERPROFILE "AppData\Roaming\Python\Python311\Scripts") + ";" + $env:Path
@@ -88,6 +100,9 @@ finally {
 
 Write-Host ""
 Write-Host "Setup complete."
+if (!$InstallOCR) {
+  Write-Host "OCR optional: run .\setup.ps1 -InstallOCR, then set ocr.enabled: true in config.yaml"
+}
 Write-Host "Run Xiaohongshu: .\run.ps1 crawl-xhs"
 Write-Host "Run Weibo:      .\run.ps1 crawl-weibo"
 Write-Host "Run WeChat:     .\run.ps1 start-wechat, scan login, then .\run.ps1 crawl-wechat"
