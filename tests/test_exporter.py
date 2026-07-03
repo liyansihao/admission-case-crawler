@@ -30,8 +30,12 @@ def test_build_outputs_merges_platforms_and_hides_false(tmp_path: Path) -> None:
     records = build_outputs(cfg)
 
     assert len(records) == 3
-    workbook = openpyxl.load_workbook(tmp_path / "output" / "excel" / "微博小红书公众号录取案例汇总_无False.xlsx", read_only=True, data_only=True)
-    sheet = workbook.active
-    values = [cell for row in sheet.iter_rows(values_only=True) for cell in row]
+    workbook = openpyxl.load_workbook(tmp_path / "output" / "excel" / "微博小红书公众号录取案例汇总_无False.xlsx", read_only=False, data_only=True)
+    assert workbook.sheetnames == ["逐条案例", "汇总图图片提取", "图片页索引", "候选但未细读", "搜索关键词与来源记录"]
+    sheet = workbook["逐条案例"]
+    assert [sheet.cell(1, column).value for column in range(1, 6)] == ["来源平台", "搜索关键词", "笔记标题", "笔记 ID", "链接"]
+    assert sheet.auto_filter.ref == "A1:AA4"
+    assert str(sheet.freeze_panes) == "A2"
+    values = [cell for sheet_name in workbook.sheetnames for row in workbook[sheet_name].iter_rows(values_only=True) for cell in row]
     assert False not in values
     assert "false" not in [str(value).lower() for value in values if value is not None]
