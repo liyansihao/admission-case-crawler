@@ -1,0 +1,6 @@
+[submodule "third_party/MediaCrawler"]
+	path = third_party/MediaCrawler
+	url = https://github.com/NanmiCoder/MediaCrawler.git
+[submodule "third_party/wechat-article-exporter"]
+	path = third_party/wechat-article-exporter
+	url = https://github.com/wechat-article/wechat-article-exporter.git

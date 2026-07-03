@@ -1,0 +1,3 @@
+display_name: Admission Case Collector
+short_description: Crawl and merge Xiaohongshu, Weibo, and WeChat admission cases.
+default_prompt: Collect admission cases from Xiaohongshu, Weibo, and WeChat, then build the merged Excel.

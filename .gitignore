@@ -1,0 +1,10 @@
+.venv/
+.cache/
+raw/
+output/
+config.yaml
+*.log
+*.tmp
+__pycache__/
+.pytest_cache/
+*.pyc
